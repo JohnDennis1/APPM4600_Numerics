@@ -8,11 +8,14 @@ from numpy.linalg import norm
 
 def driver():
 
-    x0 = np.array([3,5]) #For 2 dim
-    #x0 = np.array([0.1, 0.1, -0.1]) #For 3 dim
+    #x0 = np.array([2, 0.5]) #First guess
+    #x0 = np.array([3,5]) #second guess
+    #x0 = np.array([0.9,1.1]) #third guess
+
+    x0 = np.array([-5,3]) 
     
     Nmax = 100
-    tol = 1e-6
+    tol = 1e-10
     
     t = time.time()
     for j in range(50):
@@ -31,7 +34,16 @@ def driver():
     print('Lazy Newton: the error message reads:',ier)
     print('Lazy Newton: took this many seconds:',elapsed/20)
     print('Lazy Newton: number of iterations is:',its)
-     
+
+    t = time.time()
+    for j in range(20):
+        [xstar,ier,its,steps] =  SlackerNewton(x0,tol,Nmax)
+    elapsed = time.time()-t
+    print(xstar)
+    print('Slacker Newton: the error message reads:',ier)
+    print('Slacker Newton: took this many seconds:',elapsed/20)
+    print('Slacker Newton: number of iterations is:',its)
+    print('Slacker Newton Iteration Steps:', steps)
     #t = time.time()
     #for j in range(20):
       #[xstar,ier,its] = Broyden(x0, tol,Nmax)     
@@ -46,8 +58,14 @@ def evalF(x):
     
     F = np.zeros(2)
     
-    F[0] = x[0]**2 + x[1]**2 - 2
-    F[1] = np.exp(x[0] - 1) + x[1]**2 - 2
+    #F[0] = x[0]**2 + x[1]**2 - 2
+    #F[1] = np.exp(x[0] - 1) + x[1]**2 - 2
+
+    #F[0] = 4*x[0]**2 + x[1]**2 - 4
+    #F[1] = x[0] + x[1] - np.sin(x[0] - x[1])
+
+    F[0] = np.exp(10*x[0]) + x[1] -1
+    F[1] = 10*x[0]**2 - x[1] 
     
     return F
     
@@ -55,8 +73,8 @@ def evalJ(x):
 # Jacobian of the vector function you want to find the roots of
     
     J = np.array([
-        [2 * x[0], 2 * x[1]],
-        [np.exp(x[0] - 1), 2 * x[1]]
+        [10 * np.exp(10 * x[0]), 1],
+        [20 * x[0], -1]
     ])
     return J
 
@@ -108,6 +126,59 @@ def LazyNewton(x0,tol,Nmax):
     ier = 1
     return[xstar,ier,its]   
 
+
+# For the (2,0.5) guess, the Newton worked and Lazy Newton didn't work.
+#For the (3,5) guess, the Newton didn't work whereas the Lazy newton did.
+#Guess of (0.9,1.1) worked for both methods.
+
+## Lab Portion
+
+#3.2 Build Slacker Newton
+
+def SlackerNewton(x0,tol,Nmax):
+
+    ''' Slacker Newton = recompute the inverse of the Jacobian every 5 iterations'''
+    ''' inputs: x0 = initial guess, tol = tolerance, Nmax = max its'''
+    ''' Outputs: xstar= approx root, ier = error message, its = num its'''
+
+    steps = np.zeros(Nmax) #will take l2 of each step and store
+    steps[0]=np.linalg.norm(x0)
+
+    for its in range(Nmax):
+
+       if its % 5 == 0: #this will check if the current iteration is a multiple of 5
+           J = evalJ(x0)
+           Jinv = inv(J)
+
+       F = evalF(x0)
+       x1 = x0 - Jinv.dot(F)
+
+       steps[its] = np.linalg.norm(x1)
+
+       if (norm(x1-x0) < tol):
+           xstar = x1
+           ier =0
+           return[xstar, ier,its,steps]
+           
+       x0 = x1
+    
+    xstar = x1
+    ier = 1
+    return[xstar,ier,its,steps]
+
+#The idea behind my condition for Slacker newton is that I want to avoid
+#recomputing J and inv(J) for every iteration, but not too sparsely.
+
 if __name__ == '__main__':
     # run the drivers only if this is called from the command line
     driver()
+
+#3.2.4
+# My lab mate used the step size to determine the recomputation of the Jacobian.
+#When the step size is small, the guess is close to the root and so defining the Jacobian again
+#wouldn't be costly. My method is performed 1 iteration better than theirs
+#for the example given to us.
+
+#3.2.5
+#My method didn't perform terribly: 17 iterations and 0.0001417 seconds.
+#Newton's outperformed my method by 9 iterations and had a time 7.5e-05 seconds. 
