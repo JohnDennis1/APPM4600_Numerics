@@ -37,7 +37,7 @@ def driver():
     plt.legend()
     plt.show()    
     
-    err = abs(pval-fex)
+    err_l = abs(pval-fex)
     plt.semilogy(xeval,err_l,'ro--',label='error')
     plt.legend()
     plt.show()
