@@ -22,4 +22,5 @@ if __name__ == "__main__":
     driver()
 
 
-
+# The method with the least number of intervals is Gaussian quad, then Simpson's, then Trapezoid.
+# Gaussian is the most efficient because it needs fewer intervals to achieve the same accuracy.
