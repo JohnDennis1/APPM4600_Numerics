@@ -24,10 +24,12 @@ Copyright (C) 2025  Adrianna M. Gillman
 ############################################# 
 
 
+import time
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.linalg as la
 import scipy.linalg as scila
+from scipy.linalg import lu_factor, lu_solve
 
 
 def driver():
@@ -37,17 +39,23 @@ def driver():
 
      '''' N = size of system'''
      N = 100
- 
+
      ''' Right hand side'''
      b = np.random.rand(N,1)
      A = np.random.rand(N,N)
-  
+
+     ''' Solve the system using numpy'''
+     scila_start = time.perf_counter()
      x = scila.solve(A,b)
-     
-     test = np.matmul(A,x)
-     r = la.norm(test-b)
-     
-     print(r)
+     scila_end = time.perf_counter()
+     #print(f"Time taken for scipy.linalg.solve: {scila_end - scila_start:.2f} seconds")
+
+     ''' Solving the system using LU_solve_rect'''
+     x_lu, fact_time, sol_time = LU_solve_rect(A, b)
+     test = np.matmul(A, x_lu)
+     residual = la.norm(test - b)
+
+     print(f"Residual for LU solve: {residual:.2e}")
 
      ''' Create an ill-conditioned rectangular matrix '''
      N = 10
@@ -55,7 +63,39 @@ def driver():
      A = create_rect(N,M)     
      b = np.random.rand(N,1)
 
+def driver_datframe():
+     ''' create  matrix for testing different ways of solving a square 
+     linear system'''
 
+     '''' N = size of system'''
+     N = np.array([100, 500, 1000, 2000, 4000, 5000])
+
+     datframe = np.zeros((len(N),5))
+
+     for i in range(len(N)):
+               ''' Right hand side'''
+     b = np.random.rand(N[i],1)
+     A = np.random.rand(N[i],N[i])
+
+     ''' Solve the system using numpy'''
+     scila_start = time.perf_counter()
+     x = scila.solve(A,b)
+     scila_end = time.perf_counter()
+     datframe[i,0] = scila_end - scila_start
+          #print(f"Time taken for scipy.linalg.solve: {scila_end - scila_start:.2f} seconds")
+
+     ''' Solving the system using LU_solve_rect'''
+     x_lu, fact_time, sol_time = LU_solve_rect(A, b)
+     datframe[i,1] = fact_time
+     datframe[i,2] = sol_time
+     test = np.matmul(A, x_lu)
+     residual = la.norm(test - b)
+     datframe[i,3] = residual
+     datframe[i,4] = N[i]
+
+     #for col in datframe:
+          #print(f"Scila Time: {col[0]:.2f} | {col[1]:<10} | {col[2]:>5}")
+     #print(f"Residual for LU solve: {residual:.2e}")
      
 def create_rect(N,M):
      ''' this subroutine creates an ill-conditioned rectangular matrix'''
@@ -76,12 +116,26 @@ def create_rect(N,M):
      
      B = np.matmul(Q1,D2)
      B = np.matmul(B,Q2)
-     return B     
-          
-  
+     return B 
+
+def LU_solve_rect(A,b):
+     ''' This subroutine uses LU factorization
+     from scipy to solve the system. Also times 
+     how long it takes'''    
+     start1 = time.perf_counter()
+     lu, piv = lu_factor(A)
+     end1 = time.perf_counter()
+     start2 = time.perf_counter()
+     x = lu_solve((lu, piv), b)
+     end2 = time.perf_counter()
+     #print(f"Time taken for the factorization: {end1 - start1:.2f} seconds")
+     #print(f"Time taken for the solution: {end2 - start2:.2f} seconds")
+     return x, (end1 - start1), (end2 - start2)
+
 if __name__ == '__main__':
       # run the drivers only if this is called from the command line
-      driver()       
+      #driver()       
+      driver_datframe()
 
 
 #Answer to How to do QR factorization
